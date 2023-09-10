@@ -7,18 +7,29 @@ app.get("/", (request, response) => {
 
 app.get("/numbers", async (req, res) => {
     const urls = req.query.url;
-    // const controllerArray = [];
-    const texts = await Promise.all(urls.map(async (url, index) => {
-        controllerArray.push(new AbortController());
-        return fetch(url, { signal: controllerArray.at(index).signal, timeout : 500 }).then(resp => resp.json())
+    const response = [];
+    const numbers = await Promise.all(urls.map(async (url, index) => {
+        return fetch(url, { timeout : 500 }).then(async(resp) => {
+            let json = await resp.json();
+            return json['numbers'];
+        }).catch((err) => {
+            console.log(err);
+            // return empty array if any of the urls is not reachable
+            return [];
+        });
     }));
 
-    // // abort all controllers after 2s of timeout
-    // setTimeout(() => {
-    //     controllerArray.forEach(controller => controller.abort());
-    // }, 500);
+    for (let arr in numbers){
+        response.push(...numbers[arr]);
+    }
 
-    res.json(texts);
+    // make sure the response is sorted in ascending order
+    response.sort((a, b) => a - b);
+
+    // remove duplicate numbers
+    let filteredResponse = response.filter((item, index) => response.indexOf(item) === index);
+
+    res.json({ numbers: filteredResponse });
 });
 
 app.listen(8008, () => {
